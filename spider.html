@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spider — פלואו השוואת מחירים</title>
+<style>
+:root {
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --border: #e1e4e8;
+  --text: #24292e;
+  --muted: #586069;
+  --accent: #0366d6;
+  --accent-light: #f1f8ff;
+  --code-bg: #f6f8fa;
+  --success: #28a745;
+  --warning: #f66a0a;
+  --danger: #d73a49;
+  --heading-font: 'Georgia', serif;
+  --body-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono-font: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
+    --accent-light: #1c2c3e; --code-bg: #1c2128;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--body-font); background: var(--bg); color: var(--text); line-height: 1.7; padding: 2rem 1rem; }
+.container { max-width: 900px; margin: 0 auto; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); padding: 2.5rem 3rem; }
+.toc { background: var(--accent-light); border-right: 4px solid var(--accent); padding: 1rem 1.5rem; border-radius: 6px 0 0 6px; margin-bottom: 2.5rem; }
+.toc h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.5rem; }
+.toc ul { padding-right: 1.25rem; list-style: disc; }
+.toc li { line-height: 1.8; }
+.toc a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+.toc a:hover { text-decoration: underline; }
+h1 { font-family: var(--heading-font); font-size: 2.2rem; border-bottom: 3px solid var(--accent); padding-bottom: .5rem; margin-bottom: 1.25rem; }
+h2 { font-size: 1.5rem; margin-top: 2.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: .3rem; }
+h3 { font-size: 1.15rem; color: var(--accent); margin-top: 1.5rem; margin-bottom: 0.5rem; }
+p { margin-bottom: 1rem; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+blockquote { border-right: 4px solid var(--accent); background: var(--accent-light); padding: .75rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; }
+blockquote.warning { border-right-color: var(--warning); background: #fff8f0; }
+blockquote.danger { border-right-color: var(--danger); background: #fff5f5; }
+@media (prefers-color-scheme: dark) {
+  blockquote.warning { background: #2d1f0a; }
+  blockquote.danger { background: #2d0f0f; }
+}
+blockquote p:last-child { margin-bottom: 0; }
+code { background: var(--code-bg); border-radius: 4px; padding: .15em .4em; font-family: var(--mono-font); font-size: .88em; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem; overflow-x: auto; margin: 1rem 0; }
+pre code { background: none; padding: 0; font-size: .875em; line-height: 1.6; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.92rem; }
+th { background: var(--code-bg); font-weight: 600; text-align: right; padding: .6rem 1rem; border: 1px solid var(--border); }
+td { padding: .5rem 1rem; border: 1px solid var(--border); }
+tr:nth-child(even) td { background: var(--code-bg); }
+ul, ol { padding-right: 1.5rem; margin-bottom: 1rem; }
+li { line-height: 2; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+.badge { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: .15em .55em; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; margin-right: .25rem; vertical-align: middle; }
+.badge-bug { background: #ffeef0; color: var(--danger); border: 1px solid #f9c0c5; }
+.badge-warn { background: #fff3e0; color: var(--warning); border: 1px solid #ffd0a0; }
+.badge-open { background: #e6f0ff; color: var(--accent); border: 1px solid #b3d0ff; }
+.issue-card { border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; margin: 1rem 0; }
+.issue-card.danger { border-right: 4px solid var(--danger); }
+.issue-card.warning { border-right: 4px solid var(--warning); }
+.issue-card.info { border-right: 4px solid var(--accent); }
+.issue-card h3 { margin-top: 0; }
+.node-card { border: 1px solid var(--border); border-radius: 8px; margin: 1.25rem 0; overflow: hidden; }
+.node-header { background: var(--accent-light); border-bottom: 1px solid var(--border); padding: .6rem 1.25rem; display: flex; align-items: center; gap: .75rem; }
+.node-num { background: var(--accent); color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; flex-shrink: 0; }
+.node-title { font-weight: 700; font-size: 1.05rem; }
+.node-body { padding: 1rem 1.25rem; }
+.node-body p { margin-bottom: .6rem; }
+.backlog-item { display: flex; gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.backlog-item:last-child { border-bottom: none; }
+.backlog-num { font-weight: 700; color: var(--muted); min-width: 1.5rem; text-align: center; }
+
+/* Flow diagram */
+.flow-diagram { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 2rem 0; }
+.flow-box { background: var(--accent-light); border: 2px solid var(--accent); border-radius: 8px; padding: .6rem 2rem; font-weight: 600; color: var(--text); min-width: 220px; text-align: center; position: relative; }
+.flow-box.source { background: #e6ffed; border-color: var(--success); }
+.flow-arrow { width: 2px; height: 24px; background: var(--muted); position: relative; }
+.flow-arrow::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid var(--muted); }
+.loop-container { border: 2px dashed #6f42c1; border-radius: 12px; padding: 1.5rem 2rem; display: flex; flex-direction: column; align-items: center; gap: 0; background: #f9f7ff; position: relative; min-width: 420px; }
+@media (prefers-color-scheme: dark) {
+  .flow-box.source { background: #0d2d1a; }
+  .loop-container { background: #13102a; border-color: #9b6dff; }
+}
+.loop-label { position: absolute; top: -12px; right: 16px; background: var(--surface); padding: 0 8px; font-size: 0.78rem; color: #6f42c1; font-weight: 600; }
+.fork-row { display: flex; gap: 2rem; align-items: flex-start; }
+.fork-branch { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.fork-label { font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+.side-api { position: absolute; right: -185px; top: 50%; transform: translateY(-50%); background: #fff8e1; border: 1px solid #f0c040; border-radius: 6px; padding: .3rem .75rem; font-size: 0.78rem; color: #856404; white-space: nowrap; }
+@media (prefers-color-scheme: dark) { .side-api { background: #2d240a; border-color: #856404; color: #ffc107; } }
+@media print { .toc { display: none; } body { background: white; color: black; } .container { border: none; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>🕷️ Spider — פלואו השוואת מחירים</h1>
+  <p style="color:var(--muted); font-size:0.9rem;">עדכון אחרון: יוני 2026 · נתיב: <code>f/integrations/spider/spider_youleap</code></p>
+
+  <nav class="toc">
+    <h4>תוכן עניינים</h4>
+    <ul>
+      <li><a href="#what">מה זה ולמה צריך אותו</a></li>
+      <li><a href="#arch">ארכיטקטורה</a></li>
+      <li><a href="#prereqs">מוקדמות</a></li>
+      <li><a href="#nodes">תיאור הצמתים</a></li>
+      <li><a href="#issues">Known Issues</a></li>
+      <li><a href="#run">הפעלת הפלואו</a></li>
+      <li><a href="#backlog">Backlog</a></li>
+    </ul>
+  </nav>
+
+  <h2 id="what">מה זה ולמה צריך אותו</h2>
+  <p>לקוחות Konimbo שמוכרים מוצרים צריכים לדעת בכל רגע נתון מה המחיר של המוצרים שלהם ביחס למתחרים — KSP, Bug, Ivory, ועוד. ניטור ידני של עשרות ומאות מוצרים בחנויות שונות הוא בלתי אפשרי.</p>
+  <p>פלואו ה-Spider פותר את זה אוטומטית: הוא מוציא מחירים עדכניים מחנויות מתחרות דרך שירות Spider-UI, מצלב אותם עם המוצרים שבחנות של הלקוח ב-Medusa, מחשב מחיר מומלץ למכירה, וכותב הכל ישירות ל-metadata של כל מוצר.</p>
+
+  <hr>
+
+  <h2 id="arch">ארכיטקטורה</h2>
+  <div class="flow-diagram">
+    <div class="flow-box source">Baserow<br><small style="font-weight:400;color:var(--muted)">טבלה 2649 — token, base_url, tag_name, status</small></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-box">get_shops</div>
+    <div class="flow-arrow"></div>
+    <div class="loop-container">
+      <span class="loop-label">לולאה על כל חנות · parallel: false · skip_failures: true</span>
+      <div class="flow-box">get_tags<br><small style="font-weight:400;color:var(--muted)">בודק status, מאתר tag לפי tag_name</small></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-box" style="position:relative">get_data_from_shop<span class="side-api">← Spider API (vendors)</span></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-box">create_set</div>
+      <div class="flow-arrow"></div>
+      <div class="flow-box" style="position:relative">search_urls<span class="side-api">← Spider-UI API</span></div>
+      <!-- Fork -->
+      <table style="border-collapse:collapse;width:310px;direction:ltr;">
+        <tr>
+          <td style="border-top:2px solid var(--muted);border-left:2px solid var(--muted);height:20px;width:50%;"></td>
+          <td style="border-top:2px solid var(--muted);border-right:2px solid var(--muted);height:20px;width:50%;"></td>
+        </tr>
+        <tr>
+          <td style="border-left:2px solid var(--muted);padding:14px 12px;text-align:center;vertical-align:middle;">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--danger);margin-bottom:6px;">❌ not_found</div>
+            <div style="width:2px;height:10px;background:var(--muted);margin:0 auto 6px;"></div>
+            <div style="font-size:0.78rem;color:var(--danger);background:#fff5f5;border:1px solid #f9c0c5;border-radius:6px;padding:.45rem .7rem;">URL שגוי<br>vendor לא נתמך<br>שגיאת רשת</div>
+          </td>
+          <td style="border-right:2px solid var(--muted);padding:14px 12px;text-align:center;vertical-align:middle;">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--success);margin-bottom:6px;">✅ found</div>
+            <div style="width:2px;height:10px;background:var(--muted);margin:0 auto 6px;"></div>
+            <div class="flow-box" style="font-size:0.83rem;padding:.45rem .7rem;border-color:var(--success);background:#e6ffed;">calculate_price<br><small style="font-weight:400">מחיר נמוך + expression</small></div>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-bottom:2px solid var(--muted);border-left:2px solid var(--muted);height:20px;"></td>
+          <td style="border-bottom:2px solid var(--muted);border-right:2px solid var(--muted);height:20px;"></td>
+        </tr>
+      </table>
+      <div class="flow-arrow"></div>
+      <div class="flow-box" style="position:relative">post_medusa<span class="side-api">→ Medusa Admin API</span></div>
+      <div class="flow-arrow"></div>
+      <div class="flow-box">sent_mail<br><small style="font-weight:400;color:var(--muted)">דוח not_found → איתמר (בדיקה בלבד)</small></div>
+    </div>
+  </div>
+
+  <hr>
+
+  <h2 id="prereqs">מוקדמות</h2>
+
+  <h3>1. טבלת Baserow (טבלה 2649)</h3>
+  <table>
+    <thead><tr><th>שדה</th><th>תיאור</th><th>דוגמה / הערות</th></tr></thead>
+    <tbody>
+      <tr><td><code>שם החנות</code></td><td>מזהה החנות</td><td></td></tr>
+      <tr><td><code>token</code></td><td>Bearer JWT לאימות מול Medusa Admin API</td><td>ראה <a href="#issue-3">Issue 3</a></td></tr>
+      <tr><td><code>base_url</code></td><td>כתובת בסיס Medusa Admin</td><td><code>https://retail-os6.youleap.com/</code></td></tr>
+      <tr><td><code>tag_name</code></td><td>שם התג ב-Medusa שמסמן מוצרים לעיבוד</td><td><code>spider</code></td></tr>
+      <tr><td><code>status</code></td><td>האם החנות פעילה — חנות שאינה פעילה נדלגת בכוונה</td><td><code>true</code> / <code>false</code></td></tr>
+      <tr><td><code>scope</code></td><td>רמת עדכון ב-Medusa</td><td><code>variant</code> (ברירת מחדל) / <code>product</code></td></tr>
+      <tr><td><code>calculated_expression</code></td><td>נוסחת LiquidJS גלובלית לחנות (אופציונלי)</td><td>ניתן לדרוס per-variant</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2. Tag ב-Medusa</h3>
+  <p>צריך להתקיים tag בשם התואם ל-<code>tag_name</code> שבשורת Baserow. הפלואו עובד <strong>רק</strong> על מוצרים עם תג זה.</p>
+  <blockquote>
+    <p><strong>מדוע Tag ולא Collection:</strong> ב-Medusa כל מוצר יכול להשתייך לקולקציה <strong>אחת בלבד</strong>. שימוש ב-tag מאפשר ללקוח לתייג מוצר ב-<code>spider</code> ובמקביל לשייכו לקולקציה משלו ללא הגבלה.</p>
+  </blockquote>
+
+  <h3>3. Metadata על variants ב-Medusa</h3>
+  <p>כל variant שרוצים לכלול בהשוואה צריך metadata <strong>תחת מפתח <code>spider</code></strong> במבנה הבא:</p>
+  <pre dir="ltr" style="text-align:left"><code>{
+  "spider": {
+    "store_1": "ksp",
+    "url_product_1": "https://ksp.co.il/web/cat/product/12345",
+    "product_category_1": "tvs",
+    "store_2": "bug",
+    "url_product_2": "https://bug.co.il/p/67890",
+    "product_category_2": "tvs",
+    "calculated_expression": "{{ final_price | times: 0.9 }}"
+  }
+}</code></pre>
+  <p><strong>שמות המפתחות:</strong> <code>store_N</code>, <code>url_product_N</code>, <code>product_category_N</code></p>
+  <p><code>calculated_expression</code> הוא <strong>per-variant</strong> — כל מוצר יכול לקבל נוסחה שונה. אם לא קיים — ה-expression מ-Baserow ישמש כ-fallback; אם גם הוא לא קיים — מחיר ה-Spider עובר ללא שינוי.</p>
+  <p><strong>רשימת חנויות נתמכות:</strong> נטענת <strong>דינמית מ-Spider API</strong> לפי הקטגוריות הקיימות במוצרים — אין רשימה hardcoded. variant עם חנות לא נתמכת מסומן אוטומטית ומופיע בדוח המייל.</p>
+
+  <hr>
+
+  <h2 id="nodes">תיאור הצמתים</h2>
+
+  <div class="node-card">
+    <div class="node-header"><div class="node-num">1</div><div class="node-title"><code>get_shops</code></div></div>
+    <div class="node-body">
+      <p><strong>מה עושה:</strong> שולח GET ל-Baserow API ומחזיר רשימת חנויות.</p>
+      <p><strong>API:</strong> <code>https://table.konimbo.co.il/api/database/rows/table/2649/?user_field_names=true</code></p>
+      <p><strong>פלט:</strong> Baserow response מלא; הפלואו משתמש ב-<code>.results[]</code> לאיטרציה.</p>
+      <p><strong>הערה:</strong> ה-Baserow API token מוגדר hardcoded בקוד.</p>
+    </div>
+  </div>
+
+  <div class="node-card">
+    <div class="node-header" style="background:#f3f0ff; border-bottom-color:#d0c7f5">
+      <span style="font-size:0.85rem; color:#6f42c1; font-weight:600">לולאה — parallel: false · skip_failures: true</span>
+    </div>
+    <div class="node-body" style="font-size:0.88rem; color:var(--muted)">
+      הפלואו רץ על כל חנות ברצף. כשל בצומת כלשהו גורם לדילוג על החנות ללא התראה. <a href="#issue-2">ראה Issue 2</a>.
+    </div>
+  </div>
+
+  <div class="node-card">
+    <div class="node-header"><div class="node-num">2</div><div class="node-title"><code>get_tags</code></div></div>
+    <div class="node-body">
+      <p><strong>מה עושה:</strong> בודק אם החנות פעילה (<code>status</code>), ואם כן — מחפש tag ב-Medusa Admin לפי <code>tag_name</code>. מבצע exact match (case-insensitive, trim).</p>
+      <p><strong>קלט:</strong> החנות הנוכחית מהאיטרטור (<code>flow_input.iter.value</code>) — ✅ wiring נכון.</p>
+      <p><strong>API:</strong> <code>{base_url}admin/product-tags?q={tag_name}&amp;limit=100</code></p>
+      <p><strong>פלט:</strong></p>
+      <ul>
+        <li>status לא פעיל: <code>{ skip: true, reason: "status_disabled" }</code></li>
+        <li>tag לא נמצא: <code>{ error: "...", skip: true }</code></li>
+        <li>הצלחה: <code>{ tag_id, tag_value, skip: false }</code></li>
+      </ul>
+      <p><strong>בשגיאה:</strong> מחזיר <code>{ skip: true }</code> → הצומת הבא בודק את הדגל ומחזיר תוצאה ריקה בצורה מבוקרת.</p>
+    </div>
+  </div>
+
+  <div class="node-card">
+    <div class="node-header"><div class="node-num">3</div><div class="node-title"><code>get_data_from_shop</code></div></div>
+    <div class="node-body">
+      <p><strong>מה עושה:</strong> אם ה-tag תקין — מושך עד 1,000 מוצרים לפי <code>tag_id</code>. שולח קריאת <code>getdestributors</code> ל-Spider API לכל קטגוריה שנמצאת במוצרים, ובונה דינמית את רשימת החנויות הנתמכות. מסנן variants ומפריד בין נתמך ולא נתמך.</p>
+      <p><strong>API (מוצרים):</strong> <code>{base_url}admin/products?tag_id[]={tag_id}&amp;limit=1000</code></p>
+      <p><strong>API (vendors):</strong> <code>https://spider-ui.rudenetworks.com/admin/v1/?method=getdestributors&amp;category={category}&amp;token=&lt;API_TOKEN&gt;</code></p>
+      <p><strong>הגבלה:</strong> עד 1,000 מוצרים — אם התג יגדל יש צורך ב-pagination.</p>
+      <p><strong>פלט:</strong> <code>{ total, by_vendor, variants: [...], unsupported: [...] }</code></p>
+      <p>variants לא נתמכים: מועברים ישירות ל-<code>not_found</code> עם סיבה <code>"Store not supported by Spider: ..."</code></p>
+      <blockquote class="warning" style="margin-top:.75rem">
+        <strong>⚠️ Wiring Bug (ריבוי חנויות):</strong> לוקח תמיד <code>store_data[0]</code>. עובד עם חנות אחת; עם מספר חנויות — תמיד credentials של חנות 1. <a href="#issue-1">ראה Issue 1</a>.
+      </blockquote>
+    </div>
+  </div>
+
+  <div class="node-card">
+    <div class="node-header"><div class="node-num">4</div><div class="node-title"><code>create_set</code></div></div>
+    <div class="node-body">
+      <p><strong>מה עושה:</strong> מקבץ variants לפי <code>store|category</code> — קבוצה אחת = קריאה אחת ל-Spider. מבצע deduplication לפי <code>product_id + variant_id + url</code>. מעביר <code>unsupported</code> הלאה ללא שינוי.</p>
+      <p><strong>פלט:</strong> <code>{ groups: [{ store, category, data: [...] }], unsupported: [...] }</code></p>
+    </div>
+  </div>
+
+  <div class="node-card">
+    <div class="node-header"><div class="node-num">5</div><div class="node-title"><code>search_urls</code></div></div>
+    <div class="node-body">
+      <p><strong>מה עושה:</strong> לכל קבוצה שולח GET ל-Spider API ומצלב URLs (עם normalization: הסרת פרוטוקול + trailing slash + lowercase). מוסיף <code>unsupported</code> ישירות ל-<code>not_found</code>.</p>
+      <p><strong>Spider API:</strong> <code>https://spider-ui.rudenetworks.com/admin/v1/?method=resultdestributor&amp;distributor={store}&amp;category={category}&amp;token=&lt;API_TOKEN&gt;</code></p>
+      <p><strong>טיפול בשגיאת רשת:</strong> אם קריאה נכשלת, כל ה-variants של אותה קבוצה מתווספים ל-<code>not_found</code> עם <code>price = -1</code> וסיבת השגיאה — לא נעלמים בשקט.</p>
+      <p><strong>פלט:</strong> <code>{ found: [...], not_found: [...] }</code></p>
+      <p><code>not_found</code> כולל: URL שגוי / לא נמצא · vendor לא נתמך · שגיאת רשת.</p>
+    </div>
+  </div>
+
+  <div class="node-card">
+    <div class="node-header"><div class="node-num">6</div><div class="node-title"><code>calculate_price</code></div></div>
+    <div class="node-body">
+      <p><strong>מה עושה:</strong> לכל variant ב-found — מוצא את המחיר הנמוך ביותר בין כל החנויות שנמצאו, ואז מחשב <code>final_price</code> על ידי הפעלת <code>calculated_expression</code>.</p>
+      <p><strong>לוגיקת החישוב:</strong></p>
+      <ol>
+        <li>קיבוץ לפי <code>variant_id</code> — כל שורות אותו variant מקובצות</li>
+        <li>בחירת המחיר הנמוך ביותר (<code>&gt; 0</code>) בין כל החנויות</li>
+        <li>הפעלת <code>calculated_expression</code> מ-<code>metadata.spider</code> עם <code>final_price</code> כמשתנה</li>
+        <li>הוספת <code>final_price</code> המחושב לכל שורות ה-variant</li>
+      </ol>
+      <p><strong>דוגמה:</strong> ביטוי <code>{{ final_price | times: 0.9 }}</code> + KSP=1,000₪, Bug=900₪ → <code>final_price</code> = 810₪</p>
+      <p><strong>פלט:</strong> <code>{ total, processed, results: [...] }</code> — המערך בתוך מפתח <code>results</code>.</p>
+    </div>
+  </div>
+
+  <div class="node-card">
+    <div class="node-header"><div class="node-num">7</div><div class="node-title"><code>post_medusa</code></div></div>
+    <div class="node-body">
+      <p><strong>מה עושה:</strong> כותב תוצאות ל-Medusa. כל הבקשות נשלחות <strong>במקביל</strong> (<code>Promise.allSettled</code>). המטאדאטה נכתב תחת מפתח <code>spider</code> ומשמר שדות קיימים.</p>
+      <p><strong>מה נכתב ל-metadata (תחת <code>spider</code>):</strong></p>
+      <table>
+        <thead><tr><th>שדה</th><th>תוכן</th></tr></thead>
+        <tbody>
+          <tr><td><code>store_N</code></td><td>שם החנות המתחרה</td></tr>
+          <tr><td><code>url_product_N</code></td><td>קישור המוצר בחנות המתחרה</td></tr>
+          <tr><td><code>product_category_N</code></td><td>קטגוריה ב-Spider</td></tr>
+          <tr><td><code>price_N</code></td><td>מחיר ב-Spider (<code>-1</code> אם לא נמצא)</td></tr>
+          <tr><td><code>final_price</code></td><td>מחיר סופי לאחר חישוב expression (מ-calculate_price)</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Payload:</strong> <code>{ "metadata": { "spider": { "store_1": "ksp", "url_product_1": "...", ... } } }</code></p>
+      <p><strong>Scope:</strong> <code>variant</code> (ברירת מחדל): <code>POST {base_url}admin/products/{pid}/variants/{vid}</code><br>
+      <code>product</code>: <code>POST {base_url}admin/products/{pid}</code></p>
+      <blockquote class="warning" style="margin-top:.75rem">
+        <strong>⚠️ Wiring Bug (ריבוי חנויות):</strong> גם post_medusa לוקח <code>store_data[0]</code>. <a href="#issue-1">ראה Issue 1</a>.
+      </blockquote>
+    </div>
+  </div>
+
+  <div class="node-card">
+    <div class="node-header"><div class="node-num">8</div><div class="node-title"><code>sent_mail</code></div></div>
+    <div class="node-body">
+      <p><strong>מה עושה:</strong> שולח דוח HTML עם רשימת not_found — כולל URLים שגויים, vendors לא נתמכים, ושגיאות רשת.</p>
+      <p><strong>מצב נוכחי:</strong> נשלח לאיתמר (<code>itamarh@konimbo.co.il</code>) <strong>לצורך בדיקה פנימית בלבד</strong> — לא חלק מהמוצר הסופי.</p>
+      <p><strong>SMTP:</strong> Gmail + app password, hardcoded ב-flow.yaml.</p>
+      <p><strong>עתידי:</strong> לקבוע מי מקבל בproduction (לקוח? צוות Konimbo? שניהם?).</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <h2 id="issues">Known Issues</h2>
+
+  <div class="issue-card warning" id="issue-1">
+    <h3><span class="badge badge-warn">אזהרה</span> Issue 1 — Wiring שגוי עם ריבוי חנויות</h3>
+    <p><code>get_data_from_shop</code> ו-<code>post_medusa</code> מקבלים את כל המערך מ-Baserow ולוקחים תמיד <code>[0]</code>.</p>
+    <ul>
+      <li><strong>חנות אחת כרגע:</strong> <code>[0]</code> = החנות היחידה = תקין</li>
+      <li><strong>עם מספר חנויות:</strong> כל האיטרציות ישתמשו בcredentials של חנות 1 — גם כשמעבדים חנות 2 או 3</li>
+    </ul>
+    <p><strong>תיקון:</strong> לשנות <code>store_data</code> של שני הצמתים מ-<code>results.j.results</code> ל-<code>flow_input.iter.value</code> (כמו <code>get_tags</code>).</p>
+    <p><strong>דחיפות:</strong> לתקן לפני הוספת חנות שנייה ל-Baserow.</p>
+  </div>
+
+  <div class="issue-card warning" id="issue-2">
+    <h3><span class="badge badge-warn">אזהרה</span> Issue 2 — אין התראה על כשלים בזמן ריצה</h3>
+    <p>כשחנות נכשלת מסיבות runtime (token פג, Medusa לא זמינה), <code>skip_failures: true</code> מדלג עליה בשקט. אין מייל, אין לוג מרכזי — רק שגיאה אדומה בממשק Windmill.</p>
+    <p><strong>שים לב:</strong> חנות עם <code>status = false</code> ב-Baserow נדלגת <em>בכוונה</em> עם לוג ברור — זה לא בעיה. הבעיה היא כשלים <strong>בלתי צפויים</strong>.</p>
+    <p><strong>תיקון מוצע:</strong> לאסוף שמות חנויות שנכשלו ולהכניסן לדוח המייל של <code>sent_mail</code>.</p>
+  </div>
+
+  <div class="issue-card info" id="issue-3">
+    <h3><span class="badge badge-open">ידוע</span> Issue 3 — בעיית האימות (JOK Token)</h3>
+    <p>הפלואו מאמת מול Medusa ב-<code>Authorization: Bearer {JOK token}</code>. הטוקן נשמר ב-Baserow.</p>
+    <ul>
+      <li>Tokens עלולים לפוג תוקף ללא אזהרה מוקדמת</li>
+      <li>לא סקיילאבלי — לכל לקוח חדש צריך ליצור משתמש ב-Medusa ידנית</li>
+      <li>שמירת credentials ב-Baserow אינה פתרון מאובטח ל-production</li>
+    </ul>
+    <p><strong>הסיבה:</strong> אין מנגנון API Key ב-Medusa ל-Admin API. JOK הוא הדרך היחידה כרגע.</p>
+    <p><strong>לחקור:</strong> תמיכה ב-API Keys בגרסאות עתידיות; אחסון ב-Windmill Secrets.</p>
+  </div>
+
+  <hr>
+
+  <h2 id="run">הפעלת הפלואו</h2>
+  <h3>מצב נוכחי</h3>
+  <p>מופעל <strong>ידנית</strong> דרך ממשק Windmill · נתיב: <code>f/integrations/spider/spider_youleap</code></p>
+  <h3>אופן הפעלה עתידי</h3>
+  <p>הפלואו יופעל דרך <strong>Schedule</strong> ב-Windmill — פעם או פעמיים ביום, על כל החנויות ברצף.</p>
+
+  <hr>
+
+  <h2 id="backlog">Backlog</h2>
+
+  <h3>🐛 Bugs לתיקון</h3>
+  <div class="backlog-item">
+    <div class="backlog-num">1</div>
+    <div><span class="badge badge-warn">אזהרה</span> <strong>תקן wiring לריבוי חנויות</strong> — שנה <code>store_data</code> של <code>get_data_from_shop</code> ו-<code>post_medusa</code> מ-<code>results.j.results</code> ל-<code>flow_input.iter.value</code>. דחוף לפני הוספת חנות שנייה. <a href="#issue-1">Issue 1</a></div>
+  </div>
+  <div class="backlog-item">
+    <div class="backlog-num">2</div>
+    <div><span class="badge badge-warn">אזהרה</span> <strong>התראה על כשלים בזמן ריצה</strong> — אסוף שמות חנויות שנכשלו (runtime failures, לא status disabled) והוסף לדוח המייל. <a href="#issue-2">Issue 2</a></div>
+  </div>
+
+  <h3>🔀 Design Decisions שממתינים</h3>
+  <div class="backlog-item">
+    <div class="backlog-num">3</div>
+    <div><span class="badge badge-open">Open</span> <strong>מנגנון הכנסת URLs</strong> — Excel / פורם חיצוני לזין <code>store_N / url_product_N / product_category_N / calculated_expression</code> ל-Medusa.</div>
+  </div>
+  <div class="backlog-item">
+    <div class="backlog-num">4</div>
+    <div><span class="badge badge-open">Open</span> <strong>נמעני המייל הסופיים</strong> — כרגע נשלח לאיתמר לבדיקה. לקבוע מי מקבל בproduction.</div>
+  </div>
+
+  <h3>🚀 שיפורים עתידיים</h3>
+  <div class="backlog-item"><div class="backlog-num">5</div><div><strong>Pagination</strong> — תמיכה ב-tag עם יותר מ-1,000 מוצרים.</div></div>
+  <div class="backlog-item"><div class="backlog-num">6</div><div><strong>אימות מאובטח</strong> — החלפת JOK Token ב-API Key + Windmill Secrets.</div></div>
+  <div class="backlog-item"><div class="backlog-num">7</div><div><strong>Webhook + per-store invocation</strong> — הפעלה אוטומטית ומקבילה לפי חנות.</div></div>
+  <div class="backlog-item"><div class="backlog-num">8</div><div><strong>דוח מפורט</strong> — הרחבת המייל למוצרים שהמחיר השתנה משמעותית.</div></div>
+
+  <hr>
+  <p style="font-size:0.8rem; color:var(--muted); text-align:center; margin-top:1.5rem;">Spider Flow · Konimbo · יוני 2026</p>
+
+</div>
+</body>
+</html>
